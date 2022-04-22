@@ -1,0 +1,58 @@
+// must have includes
+#include "../Common.ush"
+#include "RayTracingCommon.ush"
+
+// acceleration structure and output buffer
+RaytracingAccelerationStructure TLAS;
+RWTexture2D<float> OutputDepth;
+
+// ray generation shader entry point
+RAY_TRACING_ENTRY_RAYGEN(CustomDepthRG)
+{
+	// reconstruct camera direction with a small (far) device z
+	uint2 PixelCoord = DispatchRaysIndex().xy + View.ViewRectMin.xy;
+	float3 WorldPosition;
+	float3 CameraDirection;
+	ReconstructWorldPositionAndCameraDirectionFromDeviceZ(PixelCoord, 0.1f, WorldPosition, CameraDirection);
+
+	// setup ray, simply shoot a long distance
+	RayDesc Ray;
+	Ray.Origin = View.WorldCameraOrigin;
+    Ray.Direction = CameraDirection;
+    Ray.TMin = 0.0f;
+    Ray.TMax = 9999;
+
+	// consider opaque geometries and front facing triangles only
+	uint RayFlags = RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_CULL_BACK_FACING_TRIANGLES;
+
+	// use material closest hit pay load
+	FPackedMaterialClosestHitPayload Payload = (FPackedMaterialClosestHitPayload)0;
+	
+	TraceRay(
+    	TLAS,   // AccelerationStructure
+    	RayFlags,
+    	RAY_TRACING_MASK_OPAQUE,          // InstanceInclusionMask, defined by UE4
+    	RAY_TRACING_SHADER_SLOT_MATERIAL, // RayContributionToHitGroupIndex, defined by UE4
+    	RAY_TRACING_NUM_SHADER_SLOTS,     // MultiplierForGeometryContributionToShaderIndex, defined by UE4
+    	0,      // MissShaderIndex
+    	Ray,    // RayDesc
+    	Payload // Payload
+    );
+
+	// the HitT is the distance from ray origin to the intersection point in the ray direction.
+	// so it can be considered as view depth, convert to device Z and store it
+	if (Payload.IsHit())
+	{
+		float3 HitPos = Ray.Origin + Payload.HitT * Ray.Direction;
+		float4 ClipPos = mul(float4(HitPos, 1.0f), View.WorldToClip);
+
+		// apply a tiny offset to depth, ray traced world pos won't be exactly the same as rasterization
+		ClipPos.z -= 0.001f;
+		OutputDepth[PixelCoord] = ClipPos.z / ClipPos.w;
+	}
+	else
+		OutputDepth[PixelCoord] = 0.0f;
+}
+
+// for default miss shader in this pass, referring FPackedMaterialClosestHitPayloadMS
+// for default hit shader used in this pass, referring OpaqueShadowCHS

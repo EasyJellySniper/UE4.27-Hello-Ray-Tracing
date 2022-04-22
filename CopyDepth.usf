@@ -1,0 +1,10 @@
+#include "/Engine/Public/Platform.ush"
+
+Texture2D InputDepth;
+SamplerState InputSampler;
+
+// output device z
+float MainPS(float2 uv : TEXCOORD0) : SV_Depth
+{
+	return InputDepth.Sample(InputSampler, uv).r;
+}

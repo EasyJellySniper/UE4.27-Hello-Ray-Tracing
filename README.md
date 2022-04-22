@@ -11,6 +11,7 @@ Engine\Source\Runtime\Renderer\Private\RayTracing\RayTracingCustomDepth.cpp  <br
 Engine\Source\Runtime\Renderer\Private\RayTracing\RayTracingCustomDepth.h  <br><br>
 
 Simply copy them to the path to check the effect. <br>
-Use r.RayTracing.CustomDepth for toggling. <br><br>
+Use r.RayTracing.CustomDepth for toggling. <br>
+Implementation explained in my WordPress post. <br><br>
 
 ![alt text](https://i.imgur.com/IiflKXY.jpg)

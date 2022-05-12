@@ -1,5 +1,5 @@
-#include "RayTracingCustom.h"
 #include "RayTracingCustomDepth.h"
+#include "RayTracingCustom.h"
 
 #if RHI_RAYTRACING
 
@@ -21,6 +21,11 @@ void RenderRayTracingCustomDepth(FRDGBuilder& GraphBuilder,
 	const FViewInfo& View)
 #if RHI_RAYTRACING
 {
+	if (!IsRayTracingEnabled())
+	{
+		return;
+	}
+	
 	if (!CVarRayTracingCustomDepth->GetBool())
 	{
 		return;
